@@ -2,37 +2,37 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.dates import days_ago
+from airflow.models import Variable
 from docker.types import Mount
+from omegaconf import OmegaConf
+
+cfg = OmegaConf.load(Variable.get('CONFIG_FILE_PATH'))
 
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": days_ago(1),
     "email": ["yaapudyakov@edu.hse.ru"],
     "retries": 2,
-    "retry_delay": timedelta(hours = 1),
+    "retry_delay": timedelta(hours=1),
 }
 
-raw_data_path = "data/raw/{}/data.csv"
-raw_target_path = "data/raw/{}/target.csv"
-
-processed_data_path = "data/processed/{}/data.csv"
-processed_target_path = "data/processed/{}/target.csv"
-
-splitted_data_path = "data/datasets/{}/{}/data.csv"
-splitted_target_path = "data/datasets/{}/{}/target.csv"
-
-models_path = "data/models/{}/model.pkl"
-metrics_path = "data/metrics/{}/metrics.json"
-
-test_size = 0.2
-random_state_splitting = 0
-
+raw_data_path = cfg['paths']['raw_data_path']
+raw_target_path = cfg['paths']['raw_target_path']
+processed_data_path = cfg['paths']['processed_data_path']
+processed_target_path = cfg['paths']['processed_target_path']
+splitted_data_path = cfg['paths']['splitted_data_path']
+splitted_target_path = cfg['paths']['splitted_target_path']
+models_path = Variable.get('MODEL_PATH')
+metrics_path = cfg['paths']['metrics_path']
+test_size = cfg['data']['test_size']
+random_state_splitting = cfg['data']['random_state_splitting']
+source_data_dir = cfg['paths']['source_data_dir']
+target_data_dir = cfg['paths']['target_data_dir']
 
 with DAG(
-    dag_id = "train_validate_model_pipeline",
-    start_date = datetime(2022, 12, 4),
-    schedule_interval = "@weekly",
+    dag_id="train_validate_model_pipeline",
+    start_date=datetime.today(),
+    schedule_interval="@weekly",
 ) as dag:
 
     process_data = DockerOperator(
@@ -42,18 +42,18 @@ with DAG(
         task_id="process_data",
         do_xcom_push=False,
         mount_tmp_dir=False,
-        mounts=[Mount(source="/Users/ypudyakov/prog/made/mlops/MADE_mlops/hw3/data", target="/data", type='bind')]
+        mounts=[Mount(source=source_data_dir, target=target_data_dir, type='bind')]
     )
 
     split_data = DockerOperator(
         image="split-data",
-        command=f"--data_path {processed_data_path} --target_path {processed_target_path} --splitted_data_path {splitted_data_path} --splitted_target_path {splitted_target_path} " + \
-                 "--date {{ ds }}" + f" --test_size {test_size} --random_state {random_state_splitting}",
+        command=f"--data_path {processed_data_path} --target_path {processed_target_path} --splitted_data_path {splitted_data_path} --splitted_target_path {splitted_target_path} " +
+                "--date {{ ds }}" + f" --test_size {test_size} --random_state {random_state_splitting}",
         network_mode="bridge",
         task_id="split_data",
         do_xcom_push=False,
         mount_tmp_dir=False,
-        mounts=[Mount(source="/Users/ypudyakov/prog/made/mlops/MADE_mlops/hw3/data", target="/data", type='bind')]
+        mounts=[Mount(source=source_data_dir, target=target_data_dir, type='bind')]
     )
 
     train_model = DockerOperator(
@@ -63,7 +63,7 @@ with DAG(
         task_id="train_model",
         do_xcom_push=False,
         mount_tmp_dir=False,
-        mounts=[Mount(source="/Users/ypudyakov/prog/made/mlops/MADE_mlops/hw3/data", target="/data", type='bind')]
+        mounts=[Mount(source=source_data_dir, target=target_data_dir, type='bind')]
     )
 
     validate_model = DockerOperator(
@@ -73,7 +73,7 @@ with DAG(
         task_id="validate_model",
         do_xcom_push=False,
         mount_tmp_dir=False,
-        mounts=[Mount(source="/Users/ypudyakov/prog/made/mlops/MADE_mlops/hw3/data", target="/data", type='bind')]
+        mounts=[Mount(source=source_data_dir, target=target_data_dir, type='bind')]
     )
 
     process_data >> split_data >> train_model >> validate_model

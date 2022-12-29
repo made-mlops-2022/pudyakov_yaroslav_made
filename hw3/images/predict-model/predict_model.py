@@ -13,7 +13,7 @@ def predict_model(model_path: str,
                   predictions_path: str,
                   date: str) -> None:
     
-    dataset_data_path = dataset_data_path.format(date, 'val')
+    dataset_data_path = dataset_data_path.format(date)
     predictions_path = predictions_path.format(date)
 
     with open(model_path, 'rb') as model_file:
@@ -26,9 +26,9 @@ def predict_model(model_path: str,
 
     predictions = model.predict(data)
 
-    Path(predictions_path[:predictions_path.rfind('/')]).mkdir(parents=True, exist_ok=True)
-    np.savetxt(predictions_path, predictions, fmt="%i", delimiter=",")
-
+    if predictions_path is not None:
+        Path(predictions_path[:predictions_path.rfind('/')]).mkdir(parents=True, exist_ok=True)
+        np.savetxt(predictions_path, predictions, fmt="%i", delimiter=",")
 
 if __name__ == '__main__':
     predict_model()

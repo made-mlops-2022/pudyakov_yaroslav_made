@@ -2,25 +2,30 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.dates import days_ago
+from airflow.models import Variable
 from docker.types import Mount
+from omegaconf import OmegaConf
+
+cfg = OmegaConf.load(Variable.get('CONFIG_FILE_PATH'))
 
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": days_ago(2),
     "email": ["yaapudyakov@edu.hse.ru"],
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
 }
 
-batch_size = 200
-raw_data_path = "data/raw/{}/data.csv"
-raw_target_path = "data/raw/{}/target.csv"
+batch_size = cfg['data']['batch_size']
+raw_data_path = cfg['paths']['raw_data_path']
+raw_target_path = cfg['paths']['raw_target_path']
+source_data_dir = cfg['paths']['source_data_dir']
+target_data_dir = cfg['paths']['target_data_dir']
 
 with DAG(
-    dag_id = "generate_data_batch",
-    start_date = datetime(2022, 12, 4),
-    schedule_interval = "@daily",
+    dag_id="generate_data_batch",
+    start_date=datetime.today(),
+    schedule_interval="@daily",
 ) as dag:
 
     generate_data = DockerOperator(
@@ -30,5 +35,5 @@ with DAG(
         task_id="generate_data",
         do_xcom_push=False,
         mount_tmp_dir=False,
-        mounts=[Mount(source="/Users/ypudyakov/prog/made/mlops/MADE_mlops/hw3/data", target="/data", type='bind')]
+        mounts=[Mount(source=source_data_dir, target=target_data_dir, type='bind')]
     )

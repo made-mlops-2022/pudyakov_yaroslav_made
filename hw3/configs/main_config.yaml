@@ -1,0 +1,16 @@
+paths:
+  raw_data_path: "data/raw/{}/data.csv"
+  raw_target_path: "data/raw/{}/target.csv"
+  splitted_data_path: "data/datasets/{}/{}/data.csv"
+  splitted_target_path: "data/datasets/{}/{}/target.csv"
+  processed_data_path: "data/processed/{}/data.csv"
+  processed_target_path: "data/processed/{}/target.csv"
+  models_path: "data/models/{}/model.pkl"
+  predictions_path: "data/predictions/{}/predictions.csv"
+  source_data_dir: "/Users/ypudyakov/prog/made/mlops/pudyakov_yaroslav_made/hw3/data"
+  target_data_dir: "/data"
+  metrics_path: "data/metrics/{}/metrics.json"
+data:
+  batch_size: 200
+  test_size: 0.2
+  random_state_splitting: 0

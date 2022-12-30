@@ -1,0 +1,5 @@
+.DS_Store
+images/.DS_Store
+data
+dags/__pycache__/
+screenshots_proof/
